@@ -1,13 +1,26 @@
 #root {
-  max-width: 1280px;
+  /* min-width: 1600px; */
   margin: 0 auto;
-  padding: 0 2rem;
-  text-align: center;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #272D3B;
 }
 
 /* /* .page-container {
   width: 100%;
 } */
+
+.page-container {
+  width: 1600px; /* Make the page container take up 90% of the #root element */
+  margin: 0 auto; /* Center the page container */
+}
 
 .title {
   margin: 0;
@@ -15,7 +28,6 @@
 
 .add-button {
   padding: 10px 20px;
-  background-color: blue;
   color: white;
   border: none;
   border-radius: 5px;
@@ -25,27 +37,16 @@
 .search-container {
   display: flex;
   margin-bottom: 20px;
-  width: 100%;
 }
 
 #issues-main-search {
   padding: 10px;
-  margin-right: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
   width: 300px;
-}
-
-.table-placeholder {
-  background-color: #f0f0f0;
-  height: 500px; /* adjust this to your preference */
-  width: 1000px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  color: black;
+  background-color: white;
+  font-size: 16px;
+  color: #272D3B;
 }
 
 .grid-toolbar {
@@ -58,16 +59,52 @@
 
 .oa-search-nav {
   display: flex;
-  align-items: center; /* Align items vertically in the center */
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
 
 .navbar-heading h2 {
-  margin-right: 20px; /* Adds some space between the heading and the search input */
+  margin-right: 30px; /* Adds some space between the heading and the search input */
 }
 
 .grid-toolbar {
   display: flex;
   justify-content: space-between;
   padding: 10px;
-  margin-bottom: 10px; /* Adjust as needed */
 }
+
+.hamburger-menu {
+  font-size: 24px; /* Adjust size as needed */
+  cursor: pointer; /* Change cursor to pointer on hover */
+  margin-right: 20px; /* Space between the hamburger menu and the heading */
+  display: flex;
+  align-items: center; /* Center align the icon vertically */
+}
+
+.navbar-icons span {
+  margin-left: 35px; /* Spacing between icons */
+  font-size: 20px; /* Adjust size as needed */
+}
+
+.left-section {
+  display: flex;
+  align-items: center; /* Align items vertically */
+}
+
+.user-icon {
+  display: inline-flex; /* Allows you to use flexbox properties */
+  justify-content: center; /* Horizontally centers the content */
+  align-items: center; /* Vertically centers the content */
+  border-radius: 50%; /* Ensures the element is circular */
+  background-color: rgb(247, 131, 6); /* Sets the new background color */
+  color: white; /* Color of the initials */
+  font-size: 20px; /* Size of the initials */
+  width: 40px; /* Directly sets the width of the circle */
+  height: 40px; /* Directly sets the height of the circle */
+}
+
+.btn {
+  background-color: #272D3B;
+}
+

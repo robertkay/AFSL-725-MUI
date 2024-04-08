@@ -97,47 +97,59 @@ const App = () => {
   // };
 
   const onExportClick = () => {
-    gridRef.current.api.exportDataAsCsv();
+    gridRef.current.api.exportDataAsExcel();
   };
 
   const ActionsCellRenderer = (props) => {
     return (
       <div>
-        <button onClick={() => handleEditClick(props.data)} style={{ marginRight: 5, border: 'none', background: 'none', cursor: 'pointer' }}>
-          ✏️
+        <button onClick={() => handleEditClick(props.data)} style={{
+          marginRight: 5, 
+          border: 'none', 
+          background: 'none', 
+          cursor: 'pointer',
+          color: '#272D3B' // Sets the color for both icons
+        }}>
+          <i className="fas fa-edit"></i> {/* Font Awesome Edit Icon */}
         </button>
-        <button onClick={() => handleDeleteClick(props.data)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
-          🗑️
+        <button onClick={() => handleDeleteClick(props.data)} style={{
+          border: 'none', 
+          background: 'none', 
+          cursor: 'pointer',
+          color: '#272D3B' // Ensures consistent color styling
+        }}>
+          <i className="fas fa-trash"></i> {/* Font Awesome Trash Icon */}
         </button>
       </div>
     );
-  };
+};
 
   const [selectedRowData, setSelectedRowData] = useState(null);
 
   const [columnDefs] = useState([
-    { field: 'make' },
-    { field: 'model' },
-    { field: 'price' },
+    { field: 'make', flex: 1, minWidth: 100 }, // Adjust minWidth as needed
+    { field: 'model', flex: 1, minWidth: 100 }, // Adjust minWidth as needed
+    { field: 'price', flex: 1, minWidth: 100 }, // Adjust minWidth as needed
     {
       headerName: 'Actions',
       cellRenderer: ActionsCellRenderer,
       editable: false,
       filter: false,
       sortable: false,
-      width: 180
+      minWidth: 180
     }
   ]);
+  
 
   return (
     <div className="page-container">
       <Navbar onSearchChange={handleSearchChange} />
       <div className="grid-toolbar">
-        <button onClick={handleAddNewClick}>Add New</button>
-        <button onClick={onExportClick}>Export to Excel</button>
+        <button className='btn' onClick={handleAddNewClick}>Add New</button>
+        <button className='btn' onClick={onExportClick}>Export to Excel</button>
       </div>
       <NewRowModal isOpen={isModalOpen} onSave={handleSaveNewRow} onClose={() => setIsModalOpen(false)} editRow={selectedRowData} />
-      <div className="ag-theme-alpine" style={{ height: 500, width: 800 }}>
+      <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
         <AgGridReact
           ref={gridRef}
           columnDefs={columnDefs}
