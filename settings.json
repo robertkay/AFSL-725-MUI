@@ -1,0 +1,21 @@
+{
+	"prod": "false",
+	"mydigitalstructure":
+	{
+		"hostname": "sandbox.openafsl.com",
+		"logon": "robk@sandbox.openafsl.com", 
+		"password": "SupRobSco24!!", 
+		"email": "x",
+		"testing": 
+		{
+			"status": "true",
+			"showData": "true",
+			"break": "-"
+		},
+		"convert": "true"
+	},
+	"local":
+	{
+		"port": "3000"
+	}
+}
