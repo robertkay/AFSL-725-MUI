@@ -1,33 +1,18 @@
-# Hello World React App with Vite
+Please follow the instructions below to view the app within your web browser: 
 
-## Introduction
+1. Clone the Repository
+git clone https://github.com/robertkay/AFSL-725-MUI.git
 
-This project is a simple "Hello World" React application set up with Vite. Vite provides a faster and leaner development experience for modern web projects. This README outlines how to install, run, and build the application.
+2. Install Dependencies
+Before running the app, install all necessary dependencies with:
+npm install
 
-## Prerequisites
+3. Build the React App
+Once dependencies are installed, the next step is to build the React app. This step compiles the React code into static files that can be served by your server script. Run:
+npm run build
 
-- **Node.js**: The project requires Node.js to run. Ensure you have Node.js installed on your system. It's recommended to use the version specified in the `.nvmrc` file if present, or refer to [Node.js website](https://nodejs.org/) for installation instructions.
+This command looks for the build script in your package.json and executes it, generating a build directory with your compiled app.
 
-## Installation
-
-Follow these steps to install the project dependencies:
-
-1. **Clone the repository**: First, clone the project repository to your local machine using Git.
-
-    ```bash
-    git clone https://github.com/<your-username>/<your-repository-name>.git
-    cd <your-repository-name>
-    ```
-
-2. **Install dependencies**: Navigate to the project directory and install the required dependencies using npm.
-
-    ```bash
-    npm install
-    ```
-
-## Running the App in Development
-
-To run the app in development mode, execute:
-
-```bash
-npm run dev
+4. Run the Server Script
+After the build process completes, the final step is to run: 
+node mydigitalstructure-local.js
