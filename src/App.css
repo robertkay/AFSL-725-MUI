@@ -104,8 +104,22 @@ body {
   height: 40px; /* Directly sets the height of the circle */
 }
 
-.btn {
-  background-color: #272D3B;
+.MuiDataGrid-footerContainer {
+  background-color: white 
+}
+
+.MuiDataGrid-filler {
+  background-color: white;
+}
+
+div[role="tooltip"] {
+  top: -120px !important;
+}
+
+/* Add to your global CSS */
+.MuiDataGrid-cell:focus,
+.MuiDataGrid-cell:focus-within {
+  outline: none !important;
 }
 
 

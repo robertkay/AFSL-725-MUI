@@ -1,60 +1,137 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import Navbar from './Navbar';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
-import 'ag-grid-enterprise';
 import axios from 'axios';
+// import { DataGrid } from '@mui/x-data-grid';
+import { DataGridPro } from '@mui/x-data-grid-pro';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import * as XLSX from 'xlsx'; // Import SheetJS
 
 const NewRowModal = ({ isOpen, onSave, onClose, editRow }) => {
-  // Initialize the state with the fields relevant to your issues
   const [newRow, setNewRow] = useState({ reference: '', title: '' });
 
   useEffect(() => {
     if (isOpen) {
-      setNewRow(editRow ? { ...editRow } : { reference: '', title: '' });
+      // Check if editRow has the properties issue_reference and issue_title
+      // and map them to reference and title respectively
+      setNewRow(editRow ? {
+        ...editRow,
+        reference: editRow.issue_reference || editRow.reference,
+        title: editRow.issue_title || editRow.title
+      } : { reference: '', title: '' });
     }
   }, [editRow, isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // Update the newRow state based on input changes
     setNewRow(prevRow => ({ ...prevRow, [name]: value }));
   };
 
   const handleSubmit = () => {
-    onSave({ ...newRow, id: editRow?.id }); // Pass the id back if editing
+    onSave({
+      ...newRow,
+      id: editRow?.id,
+      issue_reference: newRow.reference, // Ensure this matches the `field` in your columns
+      issue_title: newRow.title, // Ensure this matches the `field` in your columns
+    });
     onClose();
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div style={{ position: 'fixed', top: '20%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: 'white', padding: '20px', zIndex: 1000 }}>
-      <div>
-        <label>Reference:</label>
-        <input type="text" name="reference" value={newRow.reference} onChange={handleChange} />
-      </div>
-      <div>
-        <label>Title:</label>
-        <input type="text" name="title" value={newRow.title} onChange={handleChange} />
-      </div>
-      <button onClick={handleSubmit}>Save</button>
-      <button onClick={onClose}>Cancel</button>
-    </div>
+    <Dialog open={isOpen} onClose={onClose}>
+      <DialogTitle>Add/Edit Row</DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus
+          margin="dense"
+          name="reference"
+          label="Reference"
+          type="text"
+          fullWidth
+          variant="outlined"
+          value={newRow.reference}
+          onChange={handleChange}
+        />
+        <TextField
+          margin="dense"
+          name="title"
+          label="Title"
+          type="text"
+          fullWidth
+          variant="outlined"
+          value={newRow.title}
+          onChange={handleChange}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSubmit}>Save</Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 
-
 const App = () => {
-  const gridRef = useRef(null);
   const [rowData, setRowData] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRowData, setSelectedRowData] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const STATUSES = ['Not Started', 'In Progress', 'Completed', 'Archived'];
+
+  const columns = [
+    { field: 'id', headerName: 'ID', width: 90, hidden: true },
+    { field: 'issue_reference', headerName: 'Reference', width: 100 },
+    { field: "issue_raiseddate", headerName: 'Date', width: 100, renderCell: (params) => {
+      const date = new Date(params.value);
+      const formattedDate = date.toLocaleDateString('en-AU');
+      return <div>{formattedDate}</div>;
+    },},
+        {field: "issue_responsiblecontactpersontext", headerName: 'Adviser', width: 150},
+        {field: "issue_causecontactpersontext", headerName: 'Responsible Person', width: 150},
+        {field: "issue_responsiblecontactperson_streetstate", headerName: 'State', width: 50},
+        {field: "issue_responsiblecontactperson_contactbusiness_tradename", headerName: 'Licensee', width: 150},
+        {field: "issue_responsiblecontactbusinesstext", headerName: 'Business', width: 200},
+    { field: 'issue_title', headerName: 'Title', width: 230 },
+    {field: "issue_seissueidentification", headerName: 'Source', width: 80},
+        {field: "issue_seimpact", headerName: 'Impact', width: 80},
+        {field: "issue_statustext", headerName: 'Status', width: 100, type: "singleSelect",
+        valueOptions: ["Not Started", "In Progress", "Completed", "Archived"] },
+        {field: "issue_seclientobject1_firstname", headerName: 'Manager', width: 100},
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 90,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <>
+          <Button
+            color="primary"
+            size="small"
+            onClick={() => handleEditClick(params.row)}
+            sx={{ color: '#272D3B', minWidth: 'auto', padding: '6px', "&:hover": { backgroundColor: 'rgba(39, 45, 59, 0.1)' }, "&:focus": { outline: 'none' } }}
+          >
+            <i className="fas fa-edit"></i> {/* Font Awesome Edit Icon */}
+          </Button>
+          <Button
+            color="error"
+            size="small"
+            onClick={() => handleDeleteClick(params.id)}
+            sx={{ color: '#272D3B', minWidth: 'auto', padding: '6px', marginLeft: '8px', "&:hover": { backgroundColor: 'rgba(39, 45, 59, 0.1)' }, "&:focus": { outline: 'none' } }}
+          >
+            <i className="fas fa-trash"></i> {/* Font Awesome Trash Icon */}
+          </Button>
+        </>
+      ),
+    },
+  ];
+
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchIssues = () => {
+    setIsLoading(true);
     const criteria = JSON.stringify({
       "fields": [
         {"name": "issue_reference"},
@@ -69,47 +146,26 @@ const App = () => {
         {"name": "issue_seimpact"},
         {"name": "issue_statustext"},
         {"name": "issue_seclientobject1_firstname"},
+        // Add other fields as needed
       ],
-      "sorts": [
-        {"name": "issue_raiseddate", "direction": "desc"}
-      ],
-      "options": {
-        "rf": "json",
-        "startrow": "0",
-        "rows": 10	
-      }
+      "sorts": [{"name": "issue_raiseddate", "direction": "desc"}],
+      "options": {"rf": "json", "startrow": "0", "rows": 50}
     });
-  
-    // Using URLSearchParams to encode the data
+
     const urlEncodedData = new URLSearchParams();
     urlEncodedData.append("criteria", criteria);
-  
+
     axios.post('/rpc/issue/?method=ISSUE_SEARCH', urlEncodedData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-      }
+      headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'}
     })
     .then(response => {
-      // Assuming response.data.data.rows contains the issues array
-      setRowData(response.data.data.rows.map(item => ({
-        id: item.id, // Ensure you have a unique identifier
-        reference: item.issue_reference, // Adjust these fields based on your actual data
-        title: item.issue_title,
-        raiseddate: item.issue_raiseddate,
-        responsiblecontactpersontext: item.issue_responsiblecontactpersontext,
-        causecontactpersontext: item.issue_causecontactpersontext,
-        responsiblecontactperson_streetstate: item.issue_responsiblecontactperson_streetstate,
-        responsiblecontactperson_contactbusiness_tradename: item.issue_responsiblecontactperson_contactbusiness_tradename,
-        responsiblecontactbusinesstext: item.issue_responsiblecontactbusinesstext,
-        seissueidentification: item.issue_seissueidentification,
-        seimpact: item.issue_seimpact,
-        statustext: item.issue_statustext,
-        seclientobject1_firstname: item.issue_seclientobject1_firstname,
-      })));
+      setRowData(response.data.data.rows);
     })
     .catch(error => {
       console.error('There was a problem with the Axios operation:', error);
-      // Handle errors here
+    })
+    .finally(() => {
+      setIsLoading(false); // Update state to indicate loading is finished
     });
   };
 
@@ -117,132 +173,131 @@ const App = () => {
     fetchIssues();
   }, []);
 
+  // const handleSearchChange = (searchValue) => {
+  //   gridRef.current.api.setQuickFilter(searchValue);
+  // };
+
   const handleSearchChange = (searchValue) => {
-    gridRef.current.api.setQuickFilter(searchValue);
+    setSearchTerm(searchValue.toLowerCase());
   };
 
+  const filteredRows = rowData.filter((row) => {
+    // Ensure there's a default value for the fields before calling toLowerCase()
+    const issueReference = row.issue_reference ? row.issue_reference.toLowerCase() : '';
+    const issueTitle = row.issue_title ? row.issue_title.toLowerCase() : '';
+    return issueReference.includes(searchTerm) || issueTitle.includes(searchTerm);
+  });
+
   const handleAddNewClick = () => {
-    setSelectedRowData(null); // Explicitly clear any selection
+    setSelectedRowData(null);
     setIsModalOpen(true);
   };
 
   const handleSaveNewRow = (newOrUpdatedRow) => {
-    // Check if we're editing an existing row (indicated by the presence of an 'id')
+    let newData = [...rowData];
     if (newOrUpdatedRow.id) {
-      // Editing existing row
-      // Make sure the object structure here matches what's expected by your grid and backend
-      const updatedRows = rowData.map(row => 
-        row.id === newOrUpdatedRow.id 
-        ? { ...row, reference: newOrUpdatedRow.reference, title: newOrUpdatedRow.title } 
-        : row
-      );
-      setRowData(updatedRows);
+      // Update existing row
+      newData = newData.map(row => row.id === newOrUpdatedRow.id ? newOrUpdatedRow : row);
     } else {
-      // Adding a new row
-      // Generate a new unique ID for the new issue
+      // Add new row with a new unique ID
       const newId = rowData.length > 0 ? Math.max(...rowData.map(r => r.id)) + 1 : 1;
-      // Ensure the new object structure matches your data model
-      setRowData([...rowData, { ...newOrUpdatedRow, id: newId, reference: newOrUpdatedRow.reference, title: newOrUpdatedRow.title }]);
+      newOrUpdatedRow.id = newId; // Assign new ID to the new row
+      newData = [...newData, newOrUpdatedRow];
     }
-    // Close the modal and reset any selections
+  
+    setRowData(newData);
     setIsModalOpen(false);
-    setSelectedRowData(null);
-};
+    setSearchTerm(''); // Reset search term to ensure the new/updated row is visible
+  };
 
-  const handleEditClick = (rowData) => {
-    setSelectedRowData(rowData); // This should include the `id`
+  const handleEditClick = (row) => {
+    setSelectedRowData(row);
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = (rowData) => {
-    setRowData(currentRows => currentRows.filter(row => row !== rowData));
+  const handleDeleteClick = (id) => {
+    setRowData(rowData.filter(row => row.id !== id));
   };
 
-  //Added the onRowClicked code below for returning row ID
-  // const onRowClicked = (event) => {
-  //   // Assuming each row data has an 'id' field
-  //   alert(event.data.id);
-  // };
-
-  const onExportClick = () => {
-    gridRef.current.api.exportDataAsExcel();
-  };
-
-  const ActionsCellRenderer = (props) => {
-    return (
-      <div>
-        <button onClick={() => handleEditClick(props.data)} style={{
-          marginRight: 5, 
-          border: 'none', 
-          background: 'none', 
-          cursor: 'pointer',
-          color: '#272D3B' // Sets the color for both icons
-        }}>
-          <i className="fas fa-edit"></i> {/* Font Awesome Edit Icon */}
-        </button>
-        <button onClick={() => handleDeleteClick(props.data)} style={{
-          border: 'none', 
-          background: 'none', 
-          cursor: 'pointer',
-          color: '#272D3B' // Ensures consistent color styling
-        }}>
-          <i className="fas fa-trash"></i> {/* Font Awesome Trash Icon */}
-        </button>
-      </div>
-    );
-};
-
-  const [selectedRowData, setSelectedRowData] = useState(null);
-
-  const [columnDefs] = useState([
-    { field: 'reference', headerName: 'Reference', flex: 1, minWidth: 100, filter: 'agTextColumnFilter' },
-    { field: 'raiseddate', headerName: 'Date', flex: 1, minWidth: 100, filter: 'agDateColumnFilter' },
-    { field: 'responsiblecontactpersontext', headerName: 'Adviser', flex: 1, minWidth: 100, filter: 'agTextColumnFilter' },
-    { field: 'causecontactpersontext', headerName: 'Responsible Person', flex: 1, minWidth: 100, filter: 'agTextColumnFilter' },
-    { field: 'responsiblecontactperson_streetstate', headerName: 'State', flex: 1, minWidth: 100, filter: 'agTextColumnFilter' },
-    { field: 'responsiblecontactperson_contactbusiness_tradename', headerName: 'Licensee', flex: 1, minWidth: 100, filter: 'agTextColumnFilter' },
-    { field: 'responsiblecontactbusinesstext', headerName: 'Business', flex: 1, minWidth: 100, filter: 'agTextColumnFilter' },
-    { field: 'seissueidentification', headerName: 'Source', flex: 1, minWidth: 100, filter: 'agTextColumnFilter' },
-    { field: 'seimpact', headerName: 'Impact', flex: 1, minWidth: 100, filter: 'agTextColumnFilter' },
-    { field: 'title', headerName: 'Title', flex: 1, minWidth: 100, filter: 'agTextColumnFilter' },
-    { field: 'statustext', headerName: 'Status', flex: 1, minWidth: 100, filter: 'agSetColumnFilter', filterParams: {
-      suppressSelectAll: true,
-      comparator: (a, b) => a.localeCompare(b), // Example of custom sorting
-      values: ['Not Started', 'In Progress', 'Completed', 'Archived'] 
-    } },
-    { field: 'seclientobject1_firstname', headerName: 'Manager', flex: 1, minWidth: 100, filter: 'agTextColumnFilter' },
-    {
-      headerName: 'Actions',
-      cellRenderer: ActionsCellRenderer,
-      editable: false,
-      filter: false,
-      sortable: false,
-      minWidth: 180
-    }
-  ]);
+  const exportToExcel = (rowData) => {
+    const exportData = rowData.map(row => ({
+      // ID: String(row.id),
+      Reference: row.issue_reference,
+      Title: row.issue_title,
+      // Map other fields as needed
+    }));
   
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ExportedData");
+    XLSX.writeFile(wb, "exported_data.xlsx");
+  };
+
+  const theme = createTheme({
+    components: {
+      MuiDataGrid: {
+        styleOverrides: {
+          root: {
+            '.MuiDataGrid-row': {
+              backgroundColor: '#f0f0f0', // Change row background color
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: 'lightgrey', // Updated row hover color
+            },
+            '& .MuiTablePagination-root': {
+              color: '#272D3B', // Changes the color of the text
+              backgroundColor: 'white', // Changes the background color
+            },
+            '& .MuiPaginationItem-root': {
+              color: 'white', // Changes the color of pagination buttons
+            },
+            '& .MuiDataGrid-footerContainer': {
+              color: 'white', // Changes the color of pagination buttons
+            },
+            '& .MuiDataGrid-row.Mui-selected, & .MuiDataGrid-row.Mui-selected:hover': {
+              backgroundColor: 'lightgrey', // Change this to your preferred selected row color
+              // Use rgba for a slightly transparent color effect, allowing row details to remain visible
+            },
+            '& .MuiDataGrid-row': {
+              backgroundColor: 'white', // Your desired row background color
+            },
+          },
+        },
+      },
+    },
+  });
 
   return (
     <div className="page-container">
       <Navbar onSearchChange={handleSearchChange} />
       <div className="grid-toolbar">
-        <button className='btn' onClick={handleAddNewClick}>Add New</button>
-        <button className='btn' onClick={onExportClick}>Export to Excel</button>
+        <Button variant="contained" onClick={handleAddNewClick} sx={{ backgroundColor: '#272D3B;', '&:hover': { backgroundColor: '#272D3B;' } }}>Add New</Button>
+        <Button variant="contained" onClick={() => exportToExcel(rowData)} style={{ marginLeft: 8 }} sx={{ backgroundColor: '#272D3B;', '&:hover': { backgroundColor: '#272D3B;' } }}>
+          Export to Excel
+        </Button>
+        {/* Handle export button if needed */}
       </div>
       <NewRowModal isOpen={isModalOpen} onSave={handleSaveNewRow} onClose={() => setIsModalOpen(false)} editRow={selectedRowData} />
-      <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
-        <AgGridReact
-          ref={gridRef}
-          columnDefs={columnDefs}
-          rowData={rowData}
-          domLayout='autoHeight'
-          rowSelection="single"
-          pagination={true} // Enable pagination
-          paginationPageSize={20} // Set the number of rows per page
-          //Added the line below for returning row ID
-          // onRowClicked={onRowClicked}
-        ></AgGridReact>
+      <ThemeProvider theme={theme}>
+      <div style={{ height: 750, width: '100%' }}>
+        <DataGridPro
+          rows={filteredRows}
+          columns={columns}
+          pageSize={30}
+          rowsPerPageOptions={[30, 50, 100]}
+          loading={isLoading}
+          // checkboxSelection
+          disableSelectionOnClick
+          initialState={{
+            columns: {
+              columnVisibilityModel: {
+                id: false, // This will hide the 'id' column
+              },
+            },
+          }}
+        />
       </div>
+      </ThemeProvider>
     </div>
   );
 };
